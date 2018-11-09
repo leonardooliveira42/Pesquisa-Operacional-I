@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title> Pesquisa Operacional </title>
+
+        <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <body>
+
+        <div class="container-fluid" id="barranav">
+
+            <h3> Leonardo Oliveira </h3>
+
+            <ul class="nav justify-content-center">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#"> Simplex </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Seleção das quantidades de variaveis e restrições -->
+        <div class="container">
+            <h5> Numero de variaveis </h5>
+            <!-- Input -->
+            <input class="form-control" type="number" min="1" id="variveis" value='3'>
+            <h5> Numero de restrições </h5>
+            <!-- Input -->
+            <input class="form-control" type="number" min="1" id="restricoes" value='4'>       
+            <button type="button" class="btn btn-dark" onclick="CriarTabela()"> Criar Tabela </button>     
+        </div>
+
+        <div class="container" id="div_modelo">
+
+            <!-- Opção para maximizar ou minimizar vai aqui -->
+
+            <table class="table" id="tabela_do_problema">
+                    
+            </table>
+
+        </div>
+
+        <div class="container" id="resultados">
+
+            
+
+        </div>
+
+        <!-- Scripts -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+        <script src="bootstrap/js/bootstrap.min.js"></script>
+        <script src="js/simplex.js"></script>
+    </body>
+  
+</html>
