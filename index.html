@@ -11,43 +11,78 @@
         <link rel="stylesheet" href="css/style.css">
     </head>
     <body>
-
-        <div class="container-fluid" id="barranav">
-
-            <h3> Leonardo Oliveira </h3>
-
-            <ul class="nav justify-content-center">
-                <li class="nav-item">
-                    <a class="nav-link active" href="#"> Simplex </a>
-                </li>
-            </ul>
-        </div>
-
-        <!-- Seleção das quantidades de variaveis e restrições -->
-        <div class="container">
-            <h5> Numero de variaveis </h5>
-            <!-- Input -->
-            <input class="form-control" type="number" min="1" id="variveis" value='3'>
-            <h5> Numero de restrições </h5>
-            <!-- Input -->
-            <input class="form-control" type="number" min="1" id="restricoes" value='4'>       
-            <button type="button" class="btn btn-dark" onclick="CriarTabela()"> Criar Tabela </button>     
-        </div>
-
-        <div class="container" id="div_modelo">
-
-            <!-- Opção para maximizar ou minimizar vai aqui -->
-
-            <table class="table" id="tabela_do_problema">
-                    
-            </table>
-
-        </div>
-
-        <div class="container" id="resultados">
-
+        <nav class="navbar navbar-expand-lg navbar-light"  style="background-color: #e3f2fd;">
+            <a class="navbar-brand" href="#"> Home </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
             
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                <li class="nav-item active">
+                    <a class="nav-link" href="#"> Otimização Linear <span class="sr-only">(current)</span></a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#"> Otimização Linear Inteira </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#"> Transporte </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#"> Exemplos </a>
+                </li>
+                </ul>
+            </div>
+        </nav>
+ 
+        <div class="container" >
+            <div class="iniciarProblema" id="iniciarProblema">
+                <h5 class="text-center"> Selecione: </h5>
+                <form action="" class="form-group">
+                    <select class="custom-select my-1 mr-sm-2" name="MinMax" id="tipoOtimizacao">
+                        <option value="1" selected> Problema de Maximização </option>
+                        <option value="2"> Problema de Minimização </option>
+                    </select>
+                    <div class="row">
+                        <div class="col">
+                            <label for="numVariaveis"> Número de Variaveis </label>
+                            <input type="number" name="variveis" id="numVariaveis" class='form-control' value="1" min='0' required>
+                        </div>
+                        <div class="col">
+                            <label for="numRestricoes"> Número de Restrições </label>
+                            <input type="number" name='restricoes' id='numRestricoes' class='form-control' value="1" min='0'>
+                        </div>
+                    </div>
+                    <div id="alertaVazio" class="alert alert-warning my-3" role="alert"> Preencha os dois campos com inteiros maiores que 0</div>
+                    <div class="row justify-content-center">
+                        <button type='button' class="btn btn-success btn-lg btn-block" id="comeco" onclick="TrocarTela()"> Começar </button>
+                    </div>
+                </form>                
+            </div>
+            <div class="justify-content-center" id="tabelaDoProblema">
+                <div class="display-4 text-center" style="margin-top: 50px; margin-bottom: 50px;"> Método simplex </div>
+                <form action="" class="form-inline" id="funcaObjetivo">
+                    <h5> <span id='maxmin'> </span> Z = </h5>
+                </form>
+                <br>
+                <h5> Restrições: </h5>
+                <div id="restricoesProblema"> 
 
+                </div>
+                <form action="" class="form-inline">
+                    <label for="restricaoVariaveis"> X </label>
+                    <select name="" id="restricaoVariaveis" class="form-control">
+                        <option value="1"> >= 0 </option>
+                        <option value="2"> > 0 </option>
+                        <option value="3"> <= 0 </option>
+                        <option value="4"> < 0 </option>
+                        <option value="5"> Livre </option>
+                    </select>
+                </form>
+                <div class="row justify-content-center">
+                    <button type='button' class="btn btn-warning btn-lg btn-block" onclick="FormParaMatriz()"> Otimizar </button>
+                </div>
+            </div>
         </div>
 
         <!-- Scripts -->

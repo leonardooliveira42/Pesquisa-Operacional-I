@@ -1,97 +1,117 @@
-/**  */
 
-    var variaveis; 
-    var restricoes; 
+    //VARIAVEIS GLOBAIS 
+    var numeroVariaveis = 0; 
+    var numeroRestricoes = 0; 
+    var tipoDeProblema = 0; 
 
-function CriarTabela(){
+    //Criando a matriz 
+    var matriz = new Array(); 
 
-    //Ler os valores das inputs 
-    variaveis = $('#variveis').val(); 
-    restricoes = $('#restricoes').val(); 
+    //
+    function TrocarTela(){
+        tipoDeProblema = LerValorId('tipoOtimizacao');
+        numeroVariaveis = LerValorId('numVariaveis'); 
+        numeroRestricoes = LerValorId('numRestricoes'); 
+        var auxiliar = 'nada'; 
 
-    console.log(variaveis); 
-    console.log("Quantidade de restricoes " + restricoes); 
+        console.log("Tipo: " + tipoDeProblema);
 
-    //Limpando os valores anterioeres 
-    $("#tabela_do_problema").empty();
-    $("#tabela_do_problema").append("<br><br>");
-
-    //Maximizar ou minimizar o problema?
-    $('#tabela_do_problema').append(" <select class='custom-select' id='max_min'> <option value='1' selected> Minimizar</option> <option value='-1'> Maximizar</option> </select>");
-    
-    //Adicionando a função objetivo 
-    $("#tabela_do_problema").append("Função Objetiva: <br> Z = ");
-    for(var i = 1; i <= variaveis; i++){
-        $("#tabela_do_problema").append("<input type='number' class='variaveis' id='z"+i+"'> X<sub>"+ i+ "</sub> ")
-    }
-    $("#tabela_do_problema").append("<br>");
-
-    //Colocando as restrições 
-    $("#tabela_do_problema").append("<br> Sujeito a: <br>");
-    for(var i = 1; i <= restricoes; i++){
-        for(var j = 1; j <= variaveis; j++){
-            $("#tabela_do_problema").append("<input type='number' class='variaveis' id='A"+i+j+"'>X<sub>"+i+"</sub>");
-            if(j!=variaveis) 
-                $("#tabela_do_problema").append(" + ");
-        }
-
-        //Colocando o vetor b 
-        $("#tabela_do_problema").append(" <select class='select_desi'> <option selected> <= </option> </select>")
-        $("#tabela_do_problema").append(" <input type='number' class='variaveis'> ");
-        $("#tabela_do_problema").append("<br>");
-    }
-
-    //Colocar um botão 
-    $("#tabela_do_problema").append("<br>");
-    $("#tabela_do_problema").append("<button type='button' class='btn btn-success' onclick='MetodoSimplex()'> Simplexar </button>");
-
-}
-
-function FormaPadrao (){
-
-    //Verificar se é para maximizar ou minimizar 
-    var max = $("#max_min").val(); 
-    console.log("max ou min: " + max);  
-
-    //Coeficientes da função objetivo: 
-    var coeficientesFuncObjetiva = new Array();
-    var continua = true; 
-    var lerValor; 
-    var auxiliar; 
-
-    for(var i = 1; continua; i ++){
-        lerValor = $("#z"+i+"").val(); 
-        if(lerValor != undefined){
-            coeficientesFuncObjetiva[i-1] = lerValor; 
+        if(numeroVariaveis == 0 || numeroRestricoes == 0){
+            document.getElementById('alertaVazio').style.display = 'block';
         }else{
-            continua = false; 
-            auxiliar = i-1; 
+            document.getElementById('iniciarProblema').style.display = 'none';
+            document.getElementById('tabelaDoProblema').style.display = 'block';
+
+            switch(tipoDeProblema){
+                case '1': 
+                    auxiliar = "Maximizar "
+                    break;
+                case '2':
+                    auxiliar = "Minimizar "
+                    break;
+            }
+
+            $('#maxmin').replaceWith(auxiliar);
+
+            //Criar a função objetivo 
+            FuncaoObjetivo();
+            FormRestricao(); 
+            //Criar matriz 
         }
     }
 
-    for(var j = auxiliar; j < parseInt(auxiliar+restricoes); j++){
-        coeficientesFuncObjetiva[j] = 0 ;
+    function FormParaMatriz(){
+        var fObj = new Array(); 
+
+        //Lendo 
+        for(var i=0; i<numeroVariaveis; i++){
+            fObj[i] = LerValorId('x'+i);
+        }
+
+        for(var i=0; i<numeroRestricoes; i++){
+            matriz[i] = new Array(); 
+            for(var j=0; j<numeroVariaveis; j++){
+                matriz[i][j] = parseInt(LerValorId('a'+i+'-'+j+''));
+                if(j == numeroVariaveis-1){
+                    matriz[i][j+1] = parseInt(LerValorId('b'+i));
+                }
+            }
+        }
+
+        console.log(matriz);
+
+        
     }
 
-
-    //Alterando valores para a forma padrão 
-    coeficientesFuncObjetiva = MultiplicaVetor(coeficientesFuncObjetiva, max); 
-
-    console.log("Vetor z: " + coeficientesFuncObjetiva); 
- 
-}
-
-function MultiplicaVetor (vector, multiplicador){
-
-    for( var i = 0; i < vector.length; i++){
-        vector[i] *= multiplicador; 
+    //Funções para criar os inputs de acordo com a quant. de Variaveis e Restrições 
+    function FormRestricao(){
+        //Id: restricoesProblema
+        //O numero de restrições é a quantidade de linhas 
+        for(var i=0; i<numeroRestricoes; i++){
+            Acres('restricoesProblema','<form class="form-inline" id="linhaRestricao'+i+'"> </form>');
+            for(var j=0; j<numeroVariaveis; j++){
+                //Acres('linhaRestricao'+i,'<div class="col" id="coluna'+j+'Linha'+i+'"> </div>');
+                if(j != numeroVariaveis-1)
+                    Acres('linhaRestricao'+i,'<input type="number" class="form-control" name="xs" id="a'+i+'-'+j+'"> X<sub>'+j+'</sub> +');
+                else Acres('linhaRestricao'+i,'<input type="number" class="form-control" name="xs" id="a'+i+'-'+j+'"> X<sub>'+j+'</sub>');
+            }
+            Acres('linhaRestricao'+i,'<select class="form-control" id="ine'+i+'"> <option value="1"> <= </option> <option value="2"> < </option> <option value="3"> = </option> <option value="4"> > </option> <option value="5"> => </option> </select>');
+            Acres('linhaRestricao'+i,'<input type="number" class="form-control" name="xs" id="b'+i+'">');
+        }        
     }
-    return vector
-}
 
-function MetodoSimplex(){
+    function FuncaoObjetivo(){
 
-    //Funçao para resolver o problema de otimização 
-    FormaPadrao();
-    
-}
+        //Id da função objetivo: funcaObjetivo
+        var stringInput; 
+
+        for(var i = 0; i < numeroVariaveis; i++ ){
+            if(i != numeroVariaveis-1)
+                stringInput = '<input type="number" name="xs" class="form-control" id="x'+i+'"> X<sub>'+i+'</sub>   + ';
+            else stringInput = '<input type="number" name="xs" class="form-control" id="x'+i+'"> X<sub>'+i+'</sub>';
+            Acres('funcaObjetivo',stringInput);
+        }
+        
+    }
+
+    /**************************************************************
+     * 
+     *      FUNÇÕES UTILITARIAS PARA FACILITAR A MINHA VIDA 
+     * 
+     **************************************************************/
+
+    function LerValorId(stringId){
+        return $('#'+stringId+'').val(); 
+    }
+
+    function LimparId(id){
+        $('#'+id+'').empty(); 
+    }
+
+    function LimparClass(cl){
+        $('.'+cl+'').empty(); 
+    }
+
+    function Acres(id,valor){
+        $('#'+id+'').append(''+valor+'');
+    }
