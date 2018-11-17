@@ -7,7 +7,8 @@
     //Criando a matriz 
     var matriz = new Array(); 
 
-    //
+    //Esconder a div com a seleção da quantidade de variaveis e restrições e deixa visivel 
+    //A div com as inputs de leitura do problema de otimização
     function TrocarTela(){
         tipoDeProblema = LerValorId('tipoOtimizacao');
         numeroVariaveis = LerValorId('numVariaveis'); 
@@ -40,6 +41,60 @@
         }
     }
 
+    function FormaPadrao(){
+
+        //Fazer as verificações do vetor b
+
+            //Fazer alteração necessaria do vetor b
+
+        //Adicionar uma variavel extra para cada linha se for uma inequação
+
+        
+        //Fazer verificação das inequações 
+
+            // Adicionar as variaveis artificiais se necessario 
+
+        //Adicionar os coeficientes na função objetivo 
+
+        //Manipular função objetivo 
+
+        //Adicionar função objetivo na ultima linha da matriz
+
+        //Chamar simplex
+
+    }
+
+    function Simplex(){
+
+        //Encontrar menor negativo da ultima linha
+
+        //Encontrar menor positivo da divisão b pela linha
+
+        //Dividir a linha toda pelo valor do pivo
+
+        //Pivotar todas as linhas acima e a baixo do pivo
+
+        //Chamar novamente
+
+    }
+
+    //Função para pivotar coluna de uma matriz 
+    function PivotarColuna(){
+
+    }
+
+    //Função para dividir linha inteira pelo pivô
+    function DividirLinhaPivo(){
+
+    }
+
+    /***************************************************************
+     * 
+     *      FUNÇÕES PAR GERAR AS INPUTS DO PROBLEMA 
+     * 
+     **************************************************************/
+
+    //Colocando para matriz - Talvez não irei utilizar 
     function FormParaMatriz(){
         var fObj = new Array(); 
 
@@ -58,9 +113,15 @@
             }
         }
 
-        console.log(matriz);
+        console.log(matriz);    
 
-        
+        matriz[numeroRestricoes] = new Array(); 
+
+        for(var i=0; i<numeroVariaveis;i++){
+            matriz[numeroRestricoes][i] = fObj[i];
+        }
+
+        console.log(matriz);        
     }
 
     //Funções para criar os inputs de acordo com a quant. de Variaveis e Restrições 
@@ -75,11 +136,12 @@
                     Acres('linhaRestricao'+i,'<input type="number" class="form-control" name="xs" id="a'+i+'-'+j+'"> X<sub>'+j+'</sub> +');
                 else Acres('linhaRestricao'+i,'<input type="number" class="form-control" name="xs" id="a'+i+'-'+j+'"> X<sub>'+j+'</sub>');
             }
-            Acres('linhaRestricao'+i,'<select class="form-control" id="ine'+i+'"> <option value="1"> <= </option> <option value="2"> < </option> <option value="3"> = </option> <option value="4"> > </option> <option value="5"> => </option> </select>');
+            Acres('linhaRestricao'+i,'<select class="form-control" id="ine'+i+'"> <option value="1"> <= </option> <option value="2"> = </option> <option value="3"> => </option> </select>');
             Acres('linhaRestricao'+i,'<input type="number" class="form-control" name="xs" id="b'+i+'">');
         }        
     }
 
+    //Função para criar as inputs da função objetivo de acordo com o valor digitado.
     function FuncaoObjetivo(){
 
         //Id da função objetivo: funcaObjetivo
