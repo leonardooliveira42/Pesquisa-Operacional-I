@@ -4,6 +4,10 @@
     var numeroRestricoes = 0; 
     var tipoDeProblema = 0; 
 
+    //Um array de matrizes 
+    var ArrayQuadros = new Array(); 
+    var contQuadros = 0; 
+
     $(document).ready(function(){
         ZeMariaAparecida(); 
     });
@@ -45,6 +49,59 @@
         }
     }
 
+    //Lê os dados das inputs e coloca em uma matriz 
+    function FormParaMatriz(){
+        var fObj = new Array(); 
+
+        //Lendo 
+        for(var i=0; i<numeroVariaveis; i++){
+            if(LerValorId('x'+i) == '')
+                fObj[i] = 0;
+            else fObj[i] = LerValorId('x'+i);
+        }
+
+        for(var i=0; i<numeroRestricoes; i++){
+            matriz[i] = new Array(); 
+            for(var j=0; j<numeroVariaveis; j++){
+                var aux = LerValorId('a'+i+'-'+j+'');
+                if(aux == ""){
+                    aux = 0; 
+                }                    
+                else aux = parseInt(aux);
+
+                matriz[i][j] = aux;
+
+                //Alterando a ultima coluna da matriz 
+                if(j == numeroVariaveis-1){
+                    //Adicionando o tipo de inequação nos dados da matriz
+                    matriz[i][j+1] = parseInt(LerValorId('ine'+i));
+
+                    //Lendo os valores de b e colocando na matriz
+                    aux = LerValorId('b'+i);
+                    if(aux == ""){
+                        aux = 0; 
+                    }else aux = parseInt(aux);
+                    
+                    matriz[i][j+2] = aux; 
+                }
+            }
+        }
+
+        matriz[numeroRestricoes] = new Array(); 
+
+        for(var i=0; i<numeroVariaveis;i++){
+            var aux = fObj[i]; 
+            if(aux == '')
+                aux = 0; 
+            else aux = parseInt(aux); 
+            matriz[numeroRestricoes][i] = aux;
+        }
+        
+        //Passar para forma padrão 
+        FormaPadrao(matriz);
+    }
+
+    //Função para transformar a matriz lida em uma matriz na forma padrão 
     function FormaPadrao(MatrizLida){
 
         var posVetorB = MatrizLida[0].length - 1; 
@@ -157,60 +214,52 @@
             MatrizAuxiliar[numeroRestricoes+2][numeroColunasPadrao] = 0; 
         }
 
-        console.log(MatrizAuxiliar);      
+        //console.log(MatrizAuxiliar);      
+        ArrayQuadros[contQuadros++] = CopiarMatriz(MatrizAuxiliar,numeroRestricoes+2,numeroColunasPadrao+1);
         Simplex(MatrizAuxiliar,numeroColunasPadrao);
+
+        console.log("numero de quadros: " + contQuadros);
+        console.log(ArrayQuadros);
     }
 
+    /****************************************************************
+     * 
+     *            FUNÇÃO SIMPLEX E AUXILIARES DO SIMPLEX 
+     * 
+     ****************************************************************/
+
+    //Metodo simplex (ainda não funcionando o de duas fases)
     function Simplex(matriz,numeroColunas){
 
-        //Simplex normal 
-        var colunaPivo = 0, 
-            indiceColunaPivo, 
-            linhaPivo = Infinity, 
-            indiceLinhaPivo,
-            Pivo = {
+        //Inicializando objetos necessarios para o simplex 
+        var colunaPivo = {
+                valorColuna: 0,      //Será o valor da linha da função objetivo na coluna indice
+                indice: null
+            }; 
+        var linhaPivo = {
+                valorLinha: Infinity, 
+                indice: null
+            };
+        //Guarda a coluna e a linha do pivo escolhido e o valor do pivo 
+        var Pivo = {
                 coluna: null, 
                 linha: null, 
                 valor: null
             }; 
 
-        //Encontrar maior negativo da ultima linha
-        for(var i=1; i<numeroColunas; i++){
-            if(matriz[numeroRestricoes+1][i] < colunaPivo){
-                colunaPivo = matriz[numeroRestricoes+1][i]; 
-                indiceColunaPivo = i;
-            }
-        }
-
-        if(colunaPivo < 0){
-            //Encontrar menor positivo da divisão b pela linha
-            for(var i=1; i<numeroRestricoes+1;i++){
-                //console.log(matriz[i][numeroColunas]);
-                var aux;
-                if(matriz[i][indiceColunaPivo] == 0){
-                    aux = -1;
-                }else aux = matriz[i][indiceColunaPivo]
-                //console.log(aux); 
-                var divisao = matriz[i][numeroColunas] / aux; 
-                //console.log("Resultado divisão: " + divisao); 
-                if(divisao < linhaPivo && divisao > 0){
-                    linhaPivo = divisao; 
-                    indiceLinhaPivo = i;
-                }
-            }
-            Pivo.coluna = indiceColunaPivo; 
-            Pivo.linha = indiceLinhaPivo; 
-            Pivo.valor = matriz[indiceLinhaPivo][indiceColunaPivo];
-
+        MaiorNegativo(matriz, numeroColunas, colunaPivo);        
+        
+        if(colunaPivo.valorColuna < 0){
+            MenorPositivo(matriz,colunaPivo,numeroColunas, linhaPivo);
+            AtualizarPivo(Pivo, colunaPivo, linhaPivo, matriz);
             //Tirar da base e colocar na base 
             TrocarBases(matriz,Pivo.linha,Pivo.coluna);
-
             //Dividir a linha toda pelo valor do pivo
             DividirLinhaPivo(matriz,Pivo.linha, Pivo.valor);
-
             //Pivotar todas as linhas acima e a baixo do pivo
             PivotarColuna(matriz,Pivo.coluna,Pivo.linha); 
-            console.log(matriz);
+            //Armazenando os quadros
+            ArrayQuadros[contQuadros++] = CopiarMatriz(matriz,numeroRestricoes+2,numeroColunas+1);
             //Chamar novamente
             Simplex(matriz,numeroColunas);
         }else console.log("condição de parada da recursão");
@@ -219,7 +268,43 @@
     //Função para trocar os indices da tabela
     function TrocarBases(matriz, saiDaBase, entraNaBase){
         matriz[saiDaBase][0] = matriz[0][entraNaBase]; 
+    }
 
+    //Função para encontrar o mais negativo da linha da função objetivo
+    function MaiorNegativo(matriz, numeroColunas, colunaPivo){
+        //Encontrar maior negativo da ultima linha
+        for(var i=1; i<numeroColunas; i++){
+            if(matriz[numeroRestricoes+1][i] < colunaPivo.valorColuna){
+                colunaPivo.valorColuna = matriz[numeroRestricoes+1][i]; 
+                colunaPivo.indice = i;
+            }
+        }
+    }
+
+    //Função para encontrar o menor positivo da divisão da b pelos elementos da coluna
+    function MenorPositivo(matriz,colunaPivo,numeroColunas, linhaPivo){
+        //Encontrar menor positivo da divisão b pela linha
+        for(var i=1; i<numeroRestricoes+1;i++){
+            //console.log(matriz[i][numeroColunas]);
+            var aux;
+            if(matriz[i][colunaPivo.indice] == 0){
+                aux = -1;
+            }else aux = matriz[i][colunaPivo.indice]
+            //console.log(aux); 
+            var divisao = matriz[i][numeroColunas] / aux; 
+            //console.log("Resultado divisão: " + divisao); 
+            if(divisao < linhaPivo.valorLinha && divisao > 0){
+                linhaPivo.valorLinha = divisao; 
+                linhaPivo.indice = i;
+            }
+        }
+    }
+
+    //Função para atualizar o pivo atual 
+    function AtualizarPivo(Pivo, colunaPivo, linhaPivo, matriz){
+        Pivo.coluna = colunaPivo.indice; 
+        Pivo.linha = linhaPivo.indice; 
+        Pivo.valor = matriz[linhaPivo.indice][colunaPivo.indice];
     }
 
     //Função para pivotar coluna de uma matriz 
@@ -242,63 +327,23 @@
         }
     }
 
-    /***************************************************************
-     * 
-     *      FUNÇÕES PAR GERAR AS INPUTS DO PROBLEMA 
-     * 
-     **************************************************************/
-
-    //Lê os dados das inputs e coloca em uma matriz 
-    function FormParaMatriz(){
-        var fObj = new Array(); 
-
-        //Lendo 
-        for(var i=0; i<numeroVariaveis; i++){
-            if(LerValorId('x'+i) == '')
-                fObj[i] = 0;
-            else fObj[i] = LerValorId('x'+i);
-        }
-
-        for(var i=0; i<numeroRestricoes; i++){
-            matriz[i] = new Array(); 
-            for(var j=0; j<numeroVariaveis; j++){
-                var aux = LerValorId('a'+i+'-'+j+'');
-                if(aux == ""){
-                    aux = 0; 
-                }                    
-                else aux = parseInt(aux);
-
-                matriz[i][j] = aux;
-
-                //Alterando a ultima coluna da matriz 
-                if(j == numeroVariaveis-1){
-                    //Adicionando o tipo de inequação nos dados da matriz
-                    matriz[i][j+1] = parseInt(LerValorId('ine'+i));
-
-                    //Lendo os valores de b e colocando na matriz
-                    aux = LerValorId('b'+i);
-                    if(aux == ""){
-                        aux = 0; 
-                    }else aux = parseInt(aux);
-                    
-                    matriz[i][j+2] = aux; 
-                }
+    //Função para gerar uma nova matriz e armazena-lá no vetor de quadros 
+    function CopiarMatriz(matriz,numeroLinhas, numeroColunas){
+        var novaMatriz = new Array(); 
+        for(var i=0; i<numeroLinhas;i++){
+            novaMatriz[i] = new Array(); 
+            for(var j=0; j<numeroColunas; j++){
+                novaMatriz[i][j] = matriz[i][j]; 
             }
         }
-
-        matriz[numeroRestricoes] = new Array(); 
-
-        for(var i=0; i<numeroVariaveis;i++){
-            var aux = fObj[i]; 
-            if(aux == '')
-                aux = 0; 
-            else aux = parseInt(aux); 
-            matriz[numeroRestricoes][i] = aux;
-        }
-        
-        //Passar para forma padrão 
-        FormaPadrao(matriz);
+        return novaMatriz; 
     }
+
+    /***************************************************************
+     * 
+     *          FUNÇÕES PARA GERAR AS INPUTS DO PROBLEMA 
+     * 
+     **************************************************************/
 
     //Funções para criar os inputs de acordo com a quant. de Variaveis e Restrições 
     function FormRestricao(){
@@ -340,7 +385,7 @@
 
     function ZeMariaAparecida(){
 
-        numeroRestricoes = 3; 
+        numeroRestricoes = 2; 
         numeroVariaveis = 2; 
         tipoDeProblema = 1; 
 
@@ -358,20 +403,23 @@
         AlterarValueInput('x1',1); 
 
         //Matriz a
-        // 3 + 3 <= 18
-        AlterarValueInput('a0-0',3);
-        AlterarValueInput('a0-1',3);
+        //24 + 16 <= 96
+        AlterarValueInput('a0-0',24);
+        AlterarValueInput('a0-1',16);
         // 5 + 10 <= 45
         AlterarValueInput('a1-0',5);
         AlterarValueInput('a1-1',10);
-        //24 + 16 <= 96
-        AlterarValueInput('a2-0',24);
-        AlterarValueInput('a2-1',16);
+        // 3 + 3 <= 18
+        //AlterarValueInput('a2-0',3);
+        //lterarValueInput('a2-1',3);
+        
 
         //Vetor B
-        AlterarValueInput('b0',18);
+        AlterarValueInput('b0',96);
         AlterarValueInput('b1',45);
-        AlterarValueInput('b2',96);
+        //AlterarValueInput('b2',18);
+        
+        
        
     }
 
