@@ -104,6 +104,10 @@
     //Função para transformar a matriz lida em uma matriz na forma padrão 
     function FormaPadrao(MatrizLida){
 
+        //Zerando o vetor de resultados
+        ArrayQuadros = []; 
+        contQuadros = 0; 
+
         var posVetorB = MatrizLida[0].length - 1; 
         var posIneq = MatrizLida[0].length - 2; 
 
@@ -220,6 +224,9 @@
 
         console.log("numero de quadros: " + contQuadros);
         console.log(ArrayQuadros);
+
+        ModalResults(ArrayQuadros,numeroRestricoes+2,numeroColunasPadrao+1);
+        $('#ModalResults').modal('show'); 
     }
 
     /****************************************************************
@@ -247,10 +254,12 @@
                 valor: null
             }; 
 
-        MaiorNegativo(matriz, numeroColunas, colunaPivo);        
+        MaiorNegativo(matriz, numeroColunas, colunaPivo);        // Erro aqui 
         
         if(colunaPivo.valorColuna < 0){
-            MenorPositivo(matriz,colunaPivo,numeroColunas, linhaPivo);
+            MenorPositivo(matriz,colunaPivo,numeroColunas, linhaPivo);  //Erro aqui
+            //Inserir um erro aqui
+            
             AtualizarPivo(Pivo, colunaPivo, linhaPivo, matriz);
             //Tirar da base e colocar na base 
             TrocarBases(matriz,Pivo.linha,Pivo.coluna);
@@ -263,11 +272,6 @@
             //Chamar novamente
             Simplex(matriz,numeroColunas);
         }else console.log("condição de parada da recursão");
-    }
-
-    //Função para trocar os indices da tabela
-    function TrocarBases(matriz, saiDaBase, entraNaBase){
-        matriz[saiDaBase][0] = matriz[0][entraNaBase]; 
     }
 
     //Função para encontrar o mais negativo da linha da função objetivo
@@ -300,6 +304,10 @@
         }
     }
 
+    //Função para trocar os indices da tabela
+    function TrocarBases(matriz, saiDaBase, entraNaBase){
+        matriz[saiDaBase][0] = matriz[0][entraNaBase]; 
+    }
     //Função para atualizar o pivo atual 
     function AtualizarPivo(Pivo, colunaPivo, linhaPivo, matriz){
         Pivo.coluna = colunaPivo.indice; 
@@ -337,6 +345,51 @@
             }
         }
         return novaMatriz; 
+    }
+
+    /***************************************************************
+     * 
+     *          FUNÇÕES PARA COLOCAR OS RESULTS NO MODAL 
+     * 
+     **************************************************************/
+
+    function ModalResults(vetorDeMatriz,numLinhas, numColunas){
+
+        // Div dentro do modal: divResultsModal
+
+        $('#divResultsModal').empty(); 
+        for(var i=0; i<vetorDeMatriz.length;i++){
+            //console.log(vetorDeMatriz[i]); 
+            $('#divResultsModal').append('<div> <h3 class="text-center mb-10"> Quadro '+(i+1)+' </h3>  <table class="table table-hover table-responsive-sm" id="Quadro'+i+'"> <tbody>'); 
+            for(var j=0; j<numLinhas; j++){
+                //console.log(vetorDeMatriz[i][j]);
+                $('#Quadro'+i+'').append('<tr id="linha'+j+'-'+i+'">');
+                for(var k=0; k<numColunas; k++){
+                    if(vetorDeMatriz[i][j][k] == undefined){
+                        $('#linha'+j+'-'+i+'').append('<td>  </td>');  
+                    }else {
+                        var calc = vetorDeMatriz[i][j][k];
+                        var numero = calc+""; 
+                        var decimal = numero.indexOf("."); 
+                        if(decimal != -1){
+                            calc = calc.toFixed(4); 
+                            calc = parseFloat(calc); 
+                        }                        
+                        if(j == 0){
+                            $('#linha'+j+'-'+i+'').append('<th> '+ calc +' </th>');
+                        }else if(j==2 && k == 2){
+                            $('#linha'+j+'-'+i+'').append('<td class="table-success"> '+ calc +' </td>');
+                        }else $('#linha'+j+'-'+i+'').append('<td> '+ calc +' </td>');
+
+                    }
+                    //console.log(vetorDeMatriz[i][j][k]);
+                }  
+                $('#Quadro'+i+'').append('</tr>');
+            }
+            $('#divResultsModal').append('</tbody> </table> </div>'); 
+        }  
+
+
     }
 
     /***************************************************************
