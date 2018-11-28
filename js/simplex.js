@@ -1,8 +1,12 @@
-
+    
     //VARIAVEIS GLOBAIS 
     var numeroVariaveis = 0; 
     var numeroRestricoes = 0; 
     var tipoDeProblema = 0; 
+
+    //Variaveis uteis
+    var numeroTotalLinhas = 0; 
+    var numeroTotalColunas = 0; 
 
     //Um array de matrizes 
     var ArrayQuadros = new Array(); 
@@ -10,6 +14,7 @@
 
     $(document).ready(function(){
         ZeMariaAparecida(); 
+        //ExemploIlimitado();
     });
 
     //Criando a matriz 
@@ -49,6 +54,12 @@
         }
     }
 
+    /****************************************************************
+     * 
+     *                          FORMA PADRÃO
+     * 
+     ***************************************************************/
+
     //Lê os dados das inputs e coloca em uma matriz 
     function FormParaMatriz(){
         var fObj = new Array(); 
@@ -59,6 +70,8 @@
                 fObj[i] = 0;
             else fObj[i] = LerValorId('x'+i);
         }
+
+        //console.log(fObj);
 
         for(var i=0; i<numeroRestricoes; i++){
             matriz[i] = new Array(); 
@@ -87,6 +100,8 @@
             }
         }
 
+        //console.log(matriz);
+
         matriz[numeroRestricoes] = new Array(); 
 
         for(var i=0; i<numeroVariaveis;i++){
@@ -96,7 +111,7 @@
             else aux = parseInt(aux); 
             matriz[numeroRestricoes][i] = aux;
         }
-        
+        //console.log(matriz);
         //Passar para forma padrão 
         FormaPadrao(matriz);
     }
@@ -108,27 +123,82 @@
         ArrayQuadros = []; 
         contQuadros = 0; 
 
-        var posVetorB = MatrizLida[0].length - 1; 
-        var posIneq = MatrizLida[0].length - 2; 
+        var posVetorB = numeroVariaveis + 1; 
+        var posIneq = numeroVariaveis; 
+
+        numeroTotalLinhas = numeroRestricoes+2;
 
         //Criando uma matriz auxiliar 
-        var MatrizAuxiliar = new Array(numeroRestricoes+3);
-        for(var i=0; i<numeroRestricoes+2;i++){
-            MatrizAuxiliar[i] = new Array(); 
-        } 
+        var MatrizAuxiliar = CriandoMatriz(numeroTotalLinhas);
 
         //Fazer as verificações do vetor b
-        for(var i=0; i<numeroRestricoes+1; i++){
-            if(MatrizLida[i][numeroVariaveis+1] < 0){
-                //Fazer alteração necessaria do vetor b
-                MultiplicaLinha(MatrizLida,i,-1); 
-            }
-        }      
+        VerificarVetorB(MatrizLida,numeroRestricoes+1,numeroVariaveis+1);
 
         //Calculando o total maximo de colunas
-        var numeroColunasPadrao = numeroVariaveis + 1; 
+        numeroTotalColunas = MaximoColunas(MatrizLida,posIneq,numeroVariaveis+2);         
+
+        //Transição da matriz lida para a matrizPadrao
+        var quantArtificias = TransicaoLidaPadrao(MatrizLida,MatrizAuxiliar,numeroTotalColunas-1,posIneq,posVetorB); 
+
+        //Colocando a linha da função objetivo 
+        AdicionandoAFuncObje(MatrizLida,MatrizAuxiliar,numeroTotalColunas-1);
+
+        if(quantArtificias > 0){
+            //Adicionando a linha w no quadro simplex
+            AdicionandoLinhaW(MatrizAuxiliar,numeroTotalColunas-1);
+            numeroTotalLinhas++;
+            console.log(CopiarMatriz(MatrizAuxiliar,numeroTotalLinhas,numeroTotalColunas));
+            ArrayQuadros[contQuadros++] = CopiarMatriz(MatrizAuxiliar,numeroTotalLinhas,numeroTotalColunas);
+            //Resolvendo a primeira fase:
+
+            //Remover linha W e colunas e linhas artificiais
+
+            //Chama simplex
+            Simplex(MatrizAuxiliar,numeroTotalColunas);
+
+            console.log(MatrizAuxiliar);
+            //Mostrando o resultado
+            ModalResults(ArrayQuadros,numeroTotalLinhas,numeroTotalColunas);
+            $('#ModalResults').modal('show'); 
+
+        }else{
+            ArrayQuadros[contQuadros++] = CopiarMatriz(MatrizAuxiliar,numeroTotalLinhas,numeroTotalColunas);
+            //Chamando o simplex quando não existe variavel artificial
+            Simplex(MatrizAuxiliar,numeroTotalColunas);
+
+            console.log(MatrizAuxiliar);
+            //Mostrando o resultado
+            ModalResults(ArrayQuadros,numeroTotalLinhas,numeroTotalColunas);
+            $('#ModalResults').modal('show'); 
+
+            //Adiciona um botão de mostrar resultado
+        }
+    }
+
+    // Função para gerar uma matriz com um determinado numero de linhas
+    function CriandoMatriz(numeroLinhas){
+        var criandoMatriz = new Array(numeroLinhas);
+        for(var i=0; i<numeroLinhas;i++){
+            criandoMatriz[i] = new Array(); 
+        } 
+        return criandoMatriz; 
+    }
+
+    // 
+    function VerificarVetorB(matriz, numLinhas, vetorB){
+        for(var i=0; i<numLinhas; i++){
+            if(matriz[i][vetorB] < 0){
+                //Fazer alteração necessaria do vetor b
+                MultiplicaLinha(matriz,i,-1); 
+            }
+        }   
+    }
+
+    //
+    function MaximoColunas(matriz, ineq, valorinicial){
+        var numeroColunasPadrao = valorinicial;
         for(var i=0; i<numeroRestricoes;i++){
-            switch(MatrizLida[i][posIneq]){
+            switch(matriz[i][ineq]){
                 case 1: 
                 case 0: 
                     numeroColunasPadrao++; 
@@ -137,96 +207,94 @@
                     numeroColunasPadrao += 2;
                     break;
             }
-        }       
-
-        //Transição da matriz lida para a matrizPadrao
-        var quantArtificias = 0; 
-        for(var i=0; i<numeroRestricoes; i++){
-            for(var j=0; j<numeroVariaveis; j++){
-                //Escreve o indice na primeira linha da matriz
-                MatrizAuxiliar[0][j+1] = 'x'+j;
-                //Copia os dados da matriz lida para a matriz padrao
-                MatrizAuxiliar[i+1][j+1] = MatrizLida[i][j];
-                //Se a copia atingiu o limite o algoritmo executa isso:
-                if(j == numeroVariaveis-1){
-                    for(var k=0; k<numeroColunasPadrao-numeroVariaveis; k++){
-                        //Aqui vai preencher as outras colunas do quadro simplex
-                        if(k-quantArtificias == i){
-                            switch(MatrizLida[i][posIneq]){
-                                //Caso a inequação for <= somente adiciona uma folga
-                                case 1: 
-                                    MatrizAuxiliar[i+1][k+1+numeroVariaveis] = 1; 
-                                    MatrizAuxiliar[0][k+1+numeroVariaveis] = 'f-'+i; 
-                                    MatrizAuxiliar[i+1][0] = 'f-'+i;
-                                    break; 
-                                //caso seja uma igualdade, só será adicionado uma artificial 
-                                case 0: 
-                                    MatrizAuxiliar[i+1][k+1+numeroVariaveis] = 1; 
-                                    MatrizAuxiliar[0][k+1+numeroVariaveis] = 'a-'+i; 
-                                    MatrizAuxiliar[i+1][0] = 'a-'+i;
-                                    break; 
-                                //caso seja maior ou igual, será adicionado uma folga negativa e uma artificial 
-                                case -1: 
-                                    MatrizAuxiliar[i+1][k+1+numeroVariaveis] = -1; 
-                                    MatrizAuxiliar[0][k+1+numeroVariaveis] = 'f-'+i;  
-                                    k++;
-                                    MatrizAuxiliar[i+1][k+1+numeroVariaveis] = 1; 
-                                    MatrizAuxiliar[0][k+1+numeroVariaveis] = 'a-'+i; 
-                                    MatrizAuxiliar[i+1][0] = 'a-'+i;
-                                    quantArtificias++;
-                                    break; 
-                            }
-                        }else{
-                            if(k == numeroColunasPadrao-numeroVariaveis-1){
-                                MatrizAuxiliar[i+1][k+1+numeroVariaveis] = MatrizLida[i][posVetorB];
-                            }
-                            else MatrizAuxiliar[i+1][k+1+numeroVariaveis] = 0; 
-                        }
-                    }
-                }
-            }
         }
+        return numeroColunasPadrao;   
+    }
 
-        MatrizAuxiliar[numeroRestricoes+1][0] = 'Z'; 
-        //Colocando a linha da função objetivo 
-        for(var i=0; i<numeroColunasPadrao; i++){
-            if(MatrizLida[numeroRestricoes][i] == undefined){
-                MatrizAuxiliar[numeroRestricoes+1][i+1] = 0;
+    //
+    function AdicionandoAFuncObje(matrizInicial, matrizFinal, colunas){
+
+        matrizFinal[numeroRestricoes+1][0] = 'Z'; 
+
+        for(var i=0; i<colunas; i++){
+            if(matrizInicial[numeroRestricoes][i] == undefined){
+                matrizFinal[numeroRestricoes+1][i+1] = 0;
             }else {
                 var aux; 
                 if(tipoDeProblema == 1){
                     aux = -1; 
                 }else aux = 1; 
-                MatrizAuxiliar[numeroRestricoes+1][i+1] = MatrizLida[numeroRestricoes][i] * aux;
+                matrizFinal[numeroRestricoes+1][i+1] = matrizInicial[numeroRestricoes][i] * aux;
             }
         }
+    }
 
-        if(quantArtificias > 0){
-            MatrizAuxiliar[numeroRestricoes+2] = new Array(); 
-            MatrizAuxiliar[numeroRestricoes+2][0] = 'W';
-            //Adicionando a linha w a matriz
-            for(var i=1; i<numeroColunasPadrao; i++){
-                var valorColuna = 0; 
-                for(var j=1;j<=numeroRestricoes;j++){
-                    var aux = MatrizAuxiliar[j][0].split("-");
-                    if(aux[0] == 'a'){  //é uma linha artificial 
-                       valorColuna += MatrizAuxiliar[j][i];
+    //
+    function AdicionandoLinhaW(matrizP, colunas){
+        matrizP[numeroRestricoes+2] = new Array(); 
+        matrizP[numeroRestricoes+2][0] = 'W';
+        //Adicionando a linha w a matriz
+        for(var i=1; i<colunas; i++){
+            var valorColuna = 0; 
+            for(var j=1;j<=numeroRestricoes;j++){
+                var aux = matrizP[j][0].split("-");
+                if(aux[0] == 'a'){  //é uma linha artificial 
+                   valorColuna += matrizP[j][i];
+                }
+            }
+            matrizP[numeroRestricoes+2][i] = valorColuna * (-1);
+        }
+        matrizP[numeroRestricoes+2][colunas] = 0; 
+    }
+
+    //
+    function TransicaoLidaPadrao(matrizL,matrizP,colunas,ineq,vetorb){
+        var quantArtificias = 0; 
+        for(var i=0; i<numeroRestricoes; i++){
+            for(var j=0; j<numeroVariaveis; j++){
+                //Escreve o indice na primeira linha da matriz
+                matrizP[0][j+1] = 'x'+j;
+                //Copia os dados da matriz lida para a matriz padrao
+                matrizP[i+1][j+1] = matrizL[i][j];
+                //Se a copia atingiu o limite o algoritmo executa isso:
+                if(j == numeroVariaveis-1){
+                    for(var k=0; k<colunas-numeroVariaveis; k++){
+                        //Aqui vai preencher as outras colunas do quadro simplex
+                        if(k-quantArtificias == i){
+                            switch(matrizL[i][ineq]){
+                                //Caso a inequação for <= somente adiciona uma folga
+                                case 1: 
+                                    matrizP[i+1][k+1+numeroVariaveis] = 1; 
+                                    matrizP[0][k+1+numeroVariaveis] = 'f-'+i; 
+                                    matrizP[i+1][0] = 'f-'+i;
+                                    break; 
+                                //caso seja uma igualdade, só será adicionado uma artificial 
+                                case 0: 
+                                    matrizP[i+1][k+1+numeroVariaveis] = 1; 
+                                    matrizP[0][k+1+numeroVariaveis] = 'a-'+i; 
+                                    matrizP[i+1][0] = 'a-'+i;
+                                    break; 
+                                //caso seja maior ou igual, será adicionado uma folga negativa e uma artificial 
+                                case -1: 
+                                    matrizP[i+1][k+1+numeroVariaveis] = -1; 
+                                    matrizP[0][k+1+numeroVariaveis] = 'f-'+i;  
+                                    k++;
+                                    matrizP[i+1][k+1+numeroVariaveis] = 1; 
+                                    matrizP[0][k+1+numeroVariaveis] = 'a-'+i; 
+                                    matrizP[i+1][0] = 'a-'+i;
+                                    quantArtificias++;
+                                    break; 
+                            }
+                        }else{
+                            if(k == colunas-numeroVariaveis-1){
+                                matrizP[i+1][k+1+numeroVariaveis] = matrizL[i][vetorb];
+                            }else matrizP[i+1][k+1+numeroVariaveis] = 0; 
+                        }
                     }
                 }
-                MatrizAuxiliar[numeroRestricoes+2][i] = valorColuna * (-1);
             }
-            MatrizAuxiliar[numeroRestricoes+2][numeroColunasPadrao] = 0; 
         }
-
-        //console.log(MatrizAuxiliar);      
-        ArrayQuadros[contQuadros++] = CopiarMatriz(MatrizAuxiliar,numeroRestricoes+2,numeroColunasPadrao+1);
-        Simplex(MatrizAuxiliar,numeroColunasPadrao);
-
-        console.log("numero de quadros: " + contQuadros);
-        console.log(ArrayQuadros);
-
-        ModalResults(ArrayQuadros,numeroRestricoes+2,numeroColunasPadrao+1);
-        $('#ModalResults').modal('show'); 
+        return quantArtificias;
     }
 
     /****************************************************************
@@ -237,12 +305,12 @@
 
     //Metodo simplex (ainda não funcionando o de duas fases)
     function Simplex(matriz,numeroColunas){
-
         //Inicializando objetos necessarios para o simplex 
         var colunaPivo = {
                 valorColuna: 0,      //Será o valor da linha da função objetivo na coluna indice
                 indice: null
-            }; 
+            };
+        //
         var linhaPivo = {
                 valorLinha: Infinity, 
                 indice: null
@@ -253,25 +321,47 @@
                 linha: null, 
                 valor: null
             }; 
-
-        MaiorNegativo(matriz, numeroColunas, colunaPivo);        // Erro aqui 
         
-        if(colunaPivo.valorColuna < 0){
-            MenorPositivo(matriz,colunaPivo,numeroColunas, linhaPivo);  //Erro aqui
-            //Inserir um erro aqui
-            
-            AtualizarPivo(Pivo, colunaPivo, linhaPivo, matriz);
-            //Tirar da base e colocar na base 
-            TrocarBases(matriz,Pivo.linha,Pivo.coluna);
-            //Dividir a linha toda pelo valor do pivo
-            DividirLinhaPivo(matriz,Pivo.linha, Pivo.valor);
-            //Pivotar todas as linhas acima e a baixo do pivo
-            PivotarColuna(matriz,Pivo.coluna,Pivo.linha); 
-            //Armazenando os quadros
-            ArrayQuadros[contQuadros++] = CopiarMatriz(matriz,numeroRestricoes+2,numeroColunas+1);
-            //Chamar novamente
-            Simplex(matriz,numeroColunas);
-        }else console.log("condição de parada da recursão");
+        if(MaiorNegativo(matriz, numeroColunas, colunaPivo)){
+            //Verificando a linha para haver a troca de bases
+            if(MenorPositivo(matriz,colunaPivo,numeroColunas-1,linhaPivo)){
+                //console.log(CopiarMatriz(matriz,matriz[0].length,numeroColunas));
+                AtualizarPivo(Pivo, colunaPivo, linhaPivo, matriz);
+                //Tirar da base e colocar na base 
+                TrocarBases(matriz,Pivo.linha,Pivo.coluna);
+                //Dividir a linha toda pelo valor do pivo
+                DividirLinhaPivo(matriz,Pivo.linha, Pivo.valor);
+                //Pivotar todas as linhas acima e a baixo do pivo
+                PivotarColuna(matriz,Pivo.coluna,Pivo.linha); 
+                //Armazenando os quadros
+                ArrayQuadros[contQuadros++] = CopiarMatriz(matriz,numeroTotalLinhas,numeroTotalColunas);
+                //Chamar novamente
+                Simplex(matriz,numeroColunas);
+            }else{
+                //Verificando se existe variavel artificial na base
+                if(BaseArtificial(matriz)){
+                    console.log("Não existe divisão pela coluna positiva");
+                    console.log("tem basica");
+                }else {
+                    console.log("Não existe divisão pela coluna positiva");
+                    console.log("Não tem basica"); 
+                }                
+            }   
+        }else {
+            //Introduzir a verificação de existe variavel artificial na base ou não
+            if(BaseArtificial(matriz)){
+                console.log("Não existe maior negativo!");
+                console.log("tem basica");
+            }else {
+                console.log("Não existe maior negativo!");
+                console.log("Não tem basica");
+            }                
+        }
+    }
+
+    //Metodo para resolver um quadro de duas fases
+    function SimplexPrimeiraFase(){
+
     }
 
     //Função para encontrar o mais negativo da linha da função objetivo
@@ -283,31 +373,40 @@
                 colunaPivo.indice = i;
             }
         }
+
+        if(colunaPivo.valorColuna < 0)
+            return true; 
+        else return false;
     }
 
     //Função para encontrar o menor positivo da divisão da b pelos elementos da coluna
-    function MenorPositivo(matriz,colunaPivo,numeroColunas, linhaPivo){
+    function MenorPositivo(matriz,colunaPivo,vetorB, linhaPivo){
         //Encontrar menor positivo da divisão b pela linha
         for(var i=1; i<numeroRestricoes+1;i++){
-            //console.log(matriz[i][numeroColunas]);
             var aux;
             if(matriz[i][colunaPivo.indice] == 0){
                 aux = -1;
             }else aux = matriz[i][colunaPivo.indice]
-            //console.log(aux); 
-            var divisao = matriz[i][numeroColunas] / aux; 
-            //console.log("Resultado divisão: " + divisao); 
+ 
+            var divisao = matriz[i][vetorB] / aux; 
+
             if(divisao < linhaPivo.valorLinha && divisao > 0){
                 linhaPivo.valorLinha = divisao; 
                 linhaPivo.indice = i;
             }
         }
+
+        if(divisao > 0){
+            return true; 
+        }else return false; 
+        
     }
 
     //Função para trocar os indices da tabela
     function TrocarBases(matriz, saiDaBase, entraNaBase){
         matriz[saiDaBase][0] = matriz[0][entraNaBase]; 
     }
+
     //Função para atualizar o pivo atual 
     function AtualizarPivo(Pivo, colunaPivo, linhaPivo, matriz){
         Pivo.coluna = colunaPivo.indice; 
@@ -347,6 +446,21 @@
         return novaMatriz; 
     }
 
+    //Função para verificar se existem variaveis artificiais na base
+    function BaseArtificial(matriz){
+
+        for(var i=0; i<numeroRestricoes+2;i++){      
+            if(matriz[i][0] != undefined){
+                 var variavelBasica = matriz[i][0].split("-");
+
+                if(variavelBasica[0] == "a"){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /***************************************************************
      * 
      *          FUNÇÕES PARA COLOCAR OS RESULTS NO MODAL 
@@ -359,10 +473,8 @@
 
         $('#divResultsModal').empty(); 
         for(var i=0; i<vetorDeMatriz.length;i++){
-            //console.log(vetorDeMatriz[i]); 
             $('#divResultsModal').append('<div> <h3 class="text-center mb-10"> Quadro '+(i+1)+' </h3>  <table class="table table-hover table-responsive-sm" id="Quadro'+i+'"> <tbody>'); 
             for(var j=0; j<numLinhas; j++){
-                //console.log(vetorDeMatriz[i][j]);
                 $('#Quadro'+i+'').append('<tr id="linha'+j+'-'+i+'">');
                 for(var k=0; k<numColunas; k++){
                     if(vetorDeMatriz[i][j][k] == undefined){
@@ -466,14 +578,46 @@
         //AlterarValueInput('a2-0',3);
         //lterarValueInput('a2-1',3);
         
-
         //Vetor B
         AlterarValueInput('b0',96);
         AlterarValueInput('b1',45);
-        //AlterarValueInput('b2',18);
-        
-        
+        //AlterarValueInput('b2',18);        
        
+    }
+
+    function ExemploIlimitado(){
+        numeroRestricoes = 2; 
+        numeroVariaveis = 2; 
+        tipoDeProblema = 1; 
+
+        document.getElementById('iniciarProblema').style.display = 'none';
+        document.getElementById('tabelaDoProblema').style.display = 'block';
+
+        var auxiliar = "Maximizar";
+        $('#maxmin').replaceWith(auxiliar);
+
+        FuncaoObjetivo();
+        FormRestricao(); 
+
+        //Função objetivo 
+        AlterarValueInput('x0',1); 
+        AlterarValueInput('x1',1); 
+
+        //Matriz a
+        //24 + 16 <= 96
+        AlterarValueInput('a0-0',-1);
+        AlterarValueInput('a0-1',1);
+        // 5 + 10 <= 45
+        AlterarValueInput('a1-0',1);
+        AlterarValueInput('a1-1',-1);
+        // 3 + 3 <= 18
+        //AlterarValueInput('a2-0',3);
+        //lterarValueInput('a2-1',3);
+        
+        //Vetor B
+        AlterarValueInput('b0',2);
+        AlterarValueInput('b1',2);
+        //AlterarValueInput('b2',18);
     }
 
     /**************************************************************
