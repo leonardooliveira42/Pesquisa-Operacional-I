@@ -15,6 +15,7 @@
     $(document).ready(function(){
         ZeMariaAparecida(); 
         //ExemploIlimitado();
+        //ExemploDuasFases();
     });
 
     //Criando a matriz 
@@ -29,6 +30,8 @@
         var auxiliar = 'nada'; 
 
         console.log("Tipo: " + tipoDeProblema);
+        console.log("numero de variaveis: " + numeroVariaveis);
+        console.log("numero restrições: " + numeroRestricoes);
 
         if(numeroVariaveis == 0 || numeroRestricoes == 0){
             document.getElementById('alertaVazio').style.display = 'block';
@@ -146,33 +149,75 @@
         if(quantArtificias > 0){
             //Adicionando a linha w no quadro simplex
             AdicionandoLinhaW(MatrizAuxiliar,numeroTotalColunas-1);
-            numeroTotalLinhas++;
             console.log(CopiarMatriz(MatrizAuxiliar,numeroTotalLinhas,numeroTotalColunas));
+            //Atualiza o valor total de linhas da matriz
+            numeroTotalLinhas++;
+            //Armazena o primeiro quadro
             ArrayQuadros[contQuadros++] = CopiarMatriz(MatrizAuxiliar,numeroTotalLinhas,numeroTotalColunas);
             //Resolvendo a primeira fase:
+            Simplex(MatrizAuxiliar,numeroTotalColunas,numeroRestricoes+2);
 
             //Remover linha W e colunas e linhas artificiais
+            RemocaoLCA(MatrizAuxiliar,numeroTotalColunas,numeroTotalLinhas);
 
+            Simplex(MatrizAuxiliar,numeroTotalColunas,numeroRestricoes+1);
             //Chama simplex
-            Simplex(MatrizAuxiliar,numeroTotalColunas);
+            //console.log(CopiarMatriz(MatrizAuxiliar,numeroTotalLinhas,numeroTotalColunas));
 
-            console.log(MatrizAuxiliar);
             //Mostrando o resultado
-            ModalResults(ArrayQuadros,numeroTotalLinhas,numeroTotalColunas);
+            ModalResults(ArrayQuadros);
             $('#ModalResults').modal('show'); 
 
         }else{
             ArrayQuadros[contQuadros++] = CopiarMatriz(MatrizAuxiliar,numeroTotalLinhas,numeroTotalColunas);
             //Chamando o simplex quando não existe variavel artificial
-            Simplex(MatrizAuxiliar,numeroTotalColunas);
+            Simplex(MatrizAuxiliar,numeroTotalColunas,numeroRestricoes+1);
 
-            console.log(MatrizAuxiliar);
             //Mostrando o resultado
             ModalResults(ArrayQuadros,numeroTotalLinhas,numeroTotalColunas);
             $('#ModalResults').modal('show'); 
 
             //Adiciona um botão de mostrar resultado
         }
+    }
+
+    //Removendo linhas e colunas artificiais
+    function RemocaoLCA(matriz){
+        for(var i=1; i<numeroTotalLinhas;i++){
+            var aux = matriz[i][0].split("-");
+            if(aux[0] == "a" || aux[0] == "W"){  
+                //Variavel artificial na base
+                //Remover linha
+                console.log("Removendo linha "+i);
+                matriz.splice(i,1);
+                numeroTotalLinhas--;
+                console.log(matriz);
+            }
+        }
+
+        console.log("Removendo colunas");
+        for(var i=1; i<numeroTotalColunas; i++){
+            var aux = matriz[0][i].split("-");
+            if(aux[0] == "a"){
+                console.log("Removendo coluna " +i );
+                for(var j=0; j<numeroTotalLinhas;j++){
+                    matriz[j].splice(i,1);
+                }
+                numeroTotalColunas--;
+            }
+        }
+
+        ArrayQuadros[contQuadros++] = CopiarMatriz(matriz,numeroTotalLinhas,numeroTotalColunas);
+
+    }
+
+    function RemoverLinha(matriz,linha){
+        
+
+    }
+
+    function RemoverColuna(){
+
     }
 
     // Função para gerar uma matriz com um determinado numero de linhas
@@ -245,6 +290,7 @@
             matrizP[numeroRestricoes+2][i] = valorColuna * (-1);
         }
         matrizP[numeroRestricoes+2][colunas] = 0; 
+        numeroTotalLinhas++;
     }
 
     //
@@ -304,7 +350,7 @@
      ****************************************************************/
 
     //Metodo simplex (ainda não funcionando o de duas fases)
-    function Simplex(matriz,numeroColunas){
+    function Simplex(matriz,numeroColunas,indiceFObj){
         //Inicializando objetos necessarios para o simplex 
         var colunaPivo = {
                 valorColuna: 0,      //Será o valor da linha da função objetivo na coluna indice
@@ -322,7 +368,7 @@
                 valor: null
             }; 
         
-        if(MaiorNegativo(matriz, numeroColunas, colunaPivo)){
+        if(MaiorNegativo(matriz, numeroColunas, colunaPivo,indiceFObj)){
             //Verificando a linha para haver a troca de bases
             if(MenorPositivo(matriz,colunaPivo,numeroColunas-1,linhaPivo)){
                 //console.log(CopiarMatriz(matriz,matriz[0].length,numeroColunas));
@@ -336,7 +382,7 @@
                 //Armazenando os quadros
                 ArrayQuadros[contQuadros++] = CopiarMatriz(matriz,numeroTotalLinhas,numeroTotalColunas);
                 //Chamar novamente
-                Simplex(matriz,numeroColunas);
+                Simplex(matriz,numeroColunas,indiceFObj);
             }else{
                 //Verificando se existe variavel artificial na base
                 if(BaseArtificial(matriz)){
@@ -365,11 +411,11 @@
     }
 
     //Função para encontrar o mais negativo da linha da função objetivo
-    function MaiorNegativo(matriz, numeroColunas, colunaPivo){
+    function MaiorNegativo(matriz, numeroColunas, colunaPivo, fObj){
         //Encontrar maior negativo da ultima linha
         for(var i=1; i<numeroColunas; i++){
-            if(matriz[numeroRestricoes+1][i] < colunaPivo.valorColuna){
-                colunaPivo.valorColuna = matriz[numeroRestricoes+1][i]; 
+            if(matriz[fObj][i] < colunaPivo.valorColuna){
+                colunaPivo.valorColuna = matriz[fObj][i]; 
                 colunaPivo.indice = i;
             }
         }
@@ -416,7 +462,7 @@
 
     //Função para pivotar coluna de uma matriz 
     function PivotarColuna(matriz, coluna, linha){
-        for(var i=1; i<=numeroRestricoes+1;i++){
+        for(var i=1; i<=numeroTotalLinhas-1;i++){
             if(i != linha){
                 var multiplicador =  matriz[i][coluna]/matriz[linha][coluna] ;
                 for(var j=1; j<matriz[i].length; j++){
@@ -459,49 +505,6 @@
             }
         }
         return false;
-    }
-
-    /***************************************************************
-     * 
-     *          FUNÇÕES PARA COLOCAR OS RESULTS NO MODAL 
-     * 
-     **************************************************************/
-
-    function ModalResults(vetorDeMatriz,numLinhas, numColunas){
-
-        // Div dentro do modal: divResultsModal
-
-        $('#divResultsModal').empty(); 
-        for(var i=0; i<vetorDeMatriz.length;i++){
-            $('#divResultsModal').append('<div> <h3 class="text-center mb-10"> Quadro '+(i+1)+' </h3>  <table class="table table-hover table-responsive-sm" id="Quadro'+i+'"> <tbody>'); 
-            for(var j=0; j<numLinhas; j++){
-                $('#Quadro'+i+'').append('<tr id="linha'+j+'-'+i+'">');
-                for(var k=0; k<numColunas; k++){
-                    if(vetorDeMatriz[i][j][k] == undefined){
-                        $('#linha'+j+'-'+i+'').append('<td>  </td>');  
-                    }else {
-                        var calc = vetorDeMatriz[i][j][k];
-                        var numero = calc+""; 
-                        var decimal = numero.indexOf("."); 
-                        if(decimal != -1){
-                            calc = calc.toFixed(4); 
-                            calc = parseFloat(calc); 
-                        }                        
-                        if(j == 0){
-                            $('#linha'+j+'-'+i+'').append('<th> '+ calc +' </th>');
-                        }else if(j==2 && k == 2){
-                            $('#linha'+j+'-'+i+'').append('<td class="table-success"> '+ calc +' </td>');
-                        }else $('#linha'+j+'-'+i+'').append('<td> '+ calc +' </td>');
-
-                    }
-                    //console.log(vetorDeMatriz[i][j][k]);
-                }  
-                $('#Quadro'+i+'').append('</tr>');
-            }
-            $('#divResultsModal').append('</tbody> </table> </div>'); 
-        }  
-
-
     }
 
     /***************************************************************
@@ -617,6 +620,49 @@
         //Vetor B
         AlterarValueInput('b0',2);
         AlterarValueInput('b1',2);
+        //AlterarValueInput('b2',18);
+    }
+
+    function ExemploDuasFases(){
+        numeroRestricoes = 4; 
+        numeroVariaveis = 2; 
+        tipoDeProblema = 1; 
+
+        document.getElementById('iniciarProblema').style.display = 'none';
+        document.getElementById('tabelaDoProblema').style.display = 'block';
+
+        var auxiliar = "Maximizar";
+        $('#maxmin').replaceWith(auxiliar);
+
+        FuncaoObjetivo();
+        FormRestricao(); 
+
+        //Função objetivo 
+        AlterarValueInput('x0',1); 
+        AlterarValueInput('x1',1); 
+
+        //Matriz a
+        //24 + 16 <= 96
+        AlterarValueInput('a0-0',1);
+        AlterarValueInput('a0-1',0);
+        // 5 + 10 <= 45
+        AlterarValueInput('a1-0',1);
+        AlterarValueInput('a1-1',0);
+
+        AlterarValueInput('a2-0',0);
+        AlterarValueInput('a2-1',1);
+        // 5 + 10 <= 45
+        AlterarValueInput('a3-0',0);
+        AlterarValueInput('a3-1',1);
+        // 3 + 3 <= 18
+        //AlterarValueInput('a2-0',3);
+        //lterarValueInput('a2-1',3);
+        
+        //Vetor B
+        AlterarValueInput('b0',1);
+        AlterarValueInput('b1',2);
+        AlterarValueInput('b2',1);
+        AlterarValueInput('b3',2);
         //AlterarValueInput('b2',18);
     }
 
