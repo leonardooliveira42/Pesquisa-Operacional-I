@@ -24,7 +24,10 @@ UNESP "Julio de Mesquita Filho" do campus de Bauru, ministrada pelo professor Ma
 
 O objetivo do projeto é disponibilizar alguns métodos de Programação Linear
 
-> O projeto não foi finalizado!
+<div align="center">
+  <img style="width: 60%" src="./imgs/po-i-3.png" alt="Exemplo imagem">
+</div>
+
 
 ## 💻 Pré-requisitos
 
